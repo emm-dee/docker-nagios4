@@ -1,36 +1,52 @@
-# Dockerized Nagios Service
+# Nagios 4 with SSL/TLS -- Docker Container
 
-[![Docker Stars](https://img.shields.io/docker/stars/guessi/docker-nagios4.svg)](https://hub.docker.com/r/guessi/docker-nagios4/)
-[![Docker Pulls](https://img.shields.io/docker/pulls/guessi/docker-nagios4.svg)](https://hub.docker.com/r/guessi/docker-nagios4/)
-[![Docker Automated](https://img.shields.io/docker/automated/guessi/docker-nagios4.svg)](https://hub.docker.com/r/guessi/docker-nagios4/)
+**Fork of: https://github.com/guessi/docker-nagios4**
+## **Changes from Forked Source:**
+* Enforced 443 
+* Edit to redirect / to /nagios (apache)
+* Merged some run commands for fewer layers
+* Removed NRPE Server (check_nrpe is still here of course)
 
-
-## Integrated Items
-
-* Nagios Core 4.4.2
-* Nagios Plugins 2.2.1
-* NRPE 3.2.1
-
-
-## Usage
-
-To run a nagios service with default config, use the command below:
-
-    $ docker run -d                            \
-      -p 80:80 -p 443:443 -p 5666:5666         \
-      guessi/docker-nagios4
+## **Container Mounts:**
+* You'll want to mount your nagios config to `/opt/nagios/etc` inside the container
+* Unless you rebuild the image injecting your certs, you'll need to mount yours to `/etc/ssl/cert.cer` and `/etc/ssl/cert.key`
+* You can also make `/opt/nagios/var` a volume as well since Nagios uses it for stateful stuff. pid file and log will go there. 
 
 
-To run with persistent data, use the command below:
+## **Certs are REQUIRED.**
+You can add them as a volume (shown in example below) 
 
-    $ docker run -d                            \
-      -p 80:80 -p 443:443 -p 5666:5666         \
-      -v $(pwd)/path/to/config:/opt/nagios/etc \
-      guessi/docker-nagios4
+**OR**
+
+you can burn them into the image by editing the `Dockerfile` (see near the bottom of it for an example) and rebuilding an image from it. 
 
 
-## Dashboard
+## **Example Run:**
+Mounting cert/key and both the var and etc config dir. 
+```
+docker run -d \
+  --name nagios \
+  -p 443:443 \
+  -v /path/to/nagios/data/etc:/opt/nagios/etc \
+  -v /path/to/nagios/data/var:/opt/nagios/var \
+  -v /path/to/certs/cert.cer:/etc/ssl/cert.cer \
+  -v /path/to/certs/key.key:/etc/ssl/cert.key \
+  mdebord/nagios4:latest
+```
 
-* Login: http://127.0.0.1/nagios
-* Username: nagiosadmin
-* Password: adminpass
+## **Accessing Nagios:**
+Access it on straight https wherever you're running it. 
+
+Username: `nagiosadmin`
+Password: `adminpass`
+
+Update these as you further customize your config. 
+
+## **Don't have any config to mount?** - Generate some! 
+You can temporarily run the container and copy the default config to your local dir: 
+
+For Example: 
+```
+docker run -dit --name tempcontmd mdebord/nagios4:latest && docker cp tempcontmd:/opt/nagios/etc ./ && docker rm -f tempcontmd
+````
+

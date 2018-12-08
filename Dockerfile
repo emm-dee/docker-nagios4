@@ -1,5 +1,11 @@
 FROM ubuntu:16.04
 
+# Original: https://github.com/guessi/docker-nagios4
+
+# Enforced 443 (certs must be provided to )
+# Edit to redirect / to /nagios (apache)
+# Merged some run commands for fewer layers
+
 ARG DEBIAN_FRONTEND=noninteractive
 
 # ---- package version
@@ -101,28 +107,28 @@ RUN mkdir -p /tmp/nagios-plugins                                           && \
 
 # ---- nrpe
 
-RUN mkdir -p /tmp/nrpe                                                     && \
-    wget --no-check-certificate ${NAGIOS_NRPE_ARCHIVE}                        \
-         -qO /tmp/nrpe.tar.gz                                              && \
-    tar --strip 1 -zxf /tmp/nrpe.tar.gz -C /tmp/nrpe                       && \
-    cd /tmp/nrpe                                                           && \
-    ./configure                                                               \
-    --prefix=${NAGIOS_HOME}                                                   \
-    --enable-ssl                                                              \
-    --with-opsys=linux                                                        \
-    --with-init-type=sysv                                                     \
-    --with-ssl=/usr/bin/openssl                                               \
-    --with-ssl-lib=/usr/lib/x86_64-linux-gnu                               && \
-    make                                                                   && \
-    make all                                                               && \
-    make install                                                           && \
-    make install-init                                                      && \
-    make install-config                                                    && \
-    make install-daemon                                                    && \
-    make clean                                                             && \
-    cd ~                                                                   && \
-    rm -rf /tmp/nrpe                                                       && \
-    rm -rf /tmp/nrpe.tar.gz
+# RUN mkdir -p /tmp/nrpe                                                     && \
+#     wget --no-check-certificate ${NAGIOS_NRPE_ARCHIVE}                        \
+#          -qO /tmp/nrpe.tar.gz                                              && \
+#     tar --strip 1 -zxf /tmp/nrpe.tar.gz -C /tmp/nrpe                       && \
+#     cd /tmp/nrpe                                                           && \
+#     ./configure                                                               \
+#     --prefix=${NAGIOS_HOME}                                                   \
+#     --enable-ssl                                                              \
+#     --with-opsys=linux                                                        \
+#     --with-init-type=sysv                                                     \
+#     --with-ssl=/usr/bin/openssl                                               \
+#     --with-ssl-lib=/usr/lib/x86_64-linux-gnu                               && \
+#     make                                                                   && \
+#     make all                                                               && \
+#     make install                                                           && \
+#     make install-init                                                      && \
+#     make install-config                                                    && \
+#     make install-daemon                                                    && \
+#     make clean                                                             && \
+#     cd ~                                                                   && \
+#     rm -rf /tmp/nrpe                                                       && \
+#     rm -rf /tmp/nrpe.tar.gz
 
 # ---- nagios web
 
@@ -131,24 +137,26 @@ RUN htpasswd -bc ${NAGIOS_HOME}/etc/htpasswd.users ${NAGIOS_WEB_USER} ${NAGIOS_W
 
 RUN a2enconf nagios && \
     a2enmod cgi rewrite ssl
-
 # ---- supervisor
 
 RUN mkdir -p /var/log/supervisor
 ADD supervisord.conf /etc/supervisor/
 ADD service.conf /etc/supervisor/conf.d/
 
-# ---- workaround
-
-# FIXME: this is to resolve the following error message (Event Log)
-# * Error: Could not open log file '/opt/nagios/var/nagios.log' for reading!
-
-# FIXME: credentials in log file might exposed
-RUN touch /opt/nagios/var/nagios.log && chmod 0644 /opt/nagios/var/nagios.log
-
 # ---- misc
 
-EXPOSE 80 443 5666
+RUN ln -s /etc/apache2/sites-available/default-ssl.conf /etc/apache2/sites-enabled/000-default-ssl.conf && \
+    sed -i 's/SSLCertificateFile.*/SSLCertificateFile \/etc\/ssl\/cert.cer/' /etc/apache2/sites-enabled/000-default-ssl.conf && \
+    sed -i 's/SSLCertificateKeyFile.*/SSLCertificateKeyFile \/etc\/ssl\/cert.key/' /etc/apache2/sites-enabled/000-default-ssl.conf && \
+    echo "\n RedirectMatch ^/$ /nagios" >> /etc/apache2/apache2.conf && \
+    touch /opt/nagios/var/nagios.log && chmod 0644 /opt/nagios/var/nagios.log
+
+### Injecting Certs
+### If you want to burn your certs into the image and rebuild, uncomment these lines and replace the source paths with the paths to your files. Then rebuild. 
+# ADD /path/to/cert /etc/ssl/cert.cer
+# ADD /path/to/key /etc/ssl/cert.key
+
+EXPOSE 443 5666
 
 VOLUME [ "${NAGIOS_HOME}/var", "${NAGIOS_HOME}/etc" ]
 
