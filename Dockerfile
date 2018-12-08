@@ -52,6 +52,7 @@ RUN apt update                                                             && \
         libmcrypt-dev                                                         \
         libssl-dev                                                            \
         make                                                                  \
+        nagios-nrpe-plugin                                                    \
         openssl                                                               \
         php-cli                                                               \
         php-gd                                                                \
@@ -149,10 +150,15 @@ RUN ln -s /etc/apache2/sites-available/default-ssl.conf /etc/apache2/sites-enabl
     sed -i 's/SSLCertificateFile.*/SSLCertificateFile \/etc\/ssl\/cert.cer/' /etc/apache2/sites-enabled/000-default-ssl.conf && \
     sed -i 's/SSLCertificateKeyFile.*/SSLCertificateKeyFile \/etc\/ssl\/cert.key/' /etc/apache2/sites-enabled/000-default-ssl.conf && \
     echo "\n RedirectMatch ^/$ /nagios" >> /etc/apache2/apache2.conf && \
-    touch /opt/nagios/var/nagios.log && chmod 0644 /opt/nagios/var/nagios.log
-    
+    touch /opt/nagios/var/nagios.log && chmod 0644 /opt/nagios/var/nagios.log && \
+    cp -p /usr/lib/nagios/plugins/check_nrpe /opt/nagios/libexec/check_nrpe
+
+# Custom theming:
 RUN wget --no-check-certificate https://github.com/ynlamy/vautour-style/releases/download/v1.7/vautour_style.zip
 RUN unzip -o vautour_style.zip -d /opt/nagios/share/
+# ADD logo.gif /opt/nagios/share/images/logo.gif
+# ADD logo.gif /opt/nagios/share/images/interface/logo.gif
+# RUN chmod 744 /opt/nagios/share/images/interface/logo.gif && chmod 744 /opt/nagios/share/images/logo.gif
 
 
 ### Injecting Certs
