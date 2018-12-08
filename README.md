@@ -34,6 +34,13 @@ docker run -d \
   mdebord/nagios4:latest
 ```
 
+If you choose to mount `/opt/nagios/var`, be sure your source path has the following dir structure (empty is fine):
+
+```
+var/rw/
+var/opt/nagios/spool/checkresults/
+```
+
 ## **Accessing Nagios:**
 Access it on straight https wherever you're running it. 
 
