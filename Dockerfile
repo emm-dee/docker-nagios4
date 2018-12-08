@@ -150,6 +150,10 @@ RUN ln -s /etc/apache2/sites-available/default-ssl.conf /etc/apache2/sites-enabl
     sed -i 's/SSLCertificateKeyFile.*/SSLCertificateKeyFile \/etc\/ssl\/cert.key/' /etc/apache2/sites-enabled/000-default-ssl.conf && \
     echo "\n RedirectMatch ^/$ /nagios" >> /etc/apache2/apache2.conf && \
     touch /opt/nagios/var/nagios.log && chmod 0644 /opt/nagios/var/nagios.log
+    
+RUN wget --no-check-certificate https://github.com/ynlamy/vautour-style/releases/download/v1.7/vautour_style.zip
+RUN unzip -o vautour_style.zip -d /opt/nagios/share/
+
 
 ### Injecting Certs
 ### If you want to burn your certs into the image and rebuild, uncomment these lines and replace the source paths with the paths to your files. Then rebuild. 
